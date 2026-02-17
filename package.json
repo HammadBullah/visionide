@@ -3,7 +3,7 @@
   "productName": "visionide",
   "version": "1.0.0",
   "description": "My Electron application description",
-  "main": ".vite/build/main.js",
+  "main": ".vite/build/main.mjs",
   "private": true,
   "scripts": {
     "start": "electron-forge start",
@@ -32,6 +32,7 @@
     "@types/electron-squirrel-startup": "^1.0.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/react-webcam": "^1.1.0",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "@vitejs/plugin-react": "^5.1.4",
@@ -45,8 +46,23 @@
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
     "electron-squirrel-startup": "^1.0.1",
+    "monaco-editor": "^0.55.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-webcam": "^7.2.0"
+  },
+  "mac": {
+  "category": "public.app-category.utilities",
+  "extendInfo": {
+    "NSCameraUsageDescription": "This app requires camera access for webcam preview."
   }
+},
+"build": {
+  "appId": "com.hammad.visionide",
+  "mac": {
+    "category": "public.app-category.developer-tools"
+  }
+}
+
+
 }
