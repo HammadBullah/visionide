@@ -1,7 +1,12 @@
 {
+  "include": [
+    "src",
+    "vite-env.d.ts"   // ← add this if missing
+  ],
   "compilerOptions": {
+    "jsx": "react-jsx",
     "target": "ESNext",
-    "module": "commonjs",
+    "module": "Node16",
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -9,7 +14,9 @@
     "sourceMap": true,
     "baseUrl": ".",
     "outDir": "dist",
-    "moduleResolution": "node",
-    "resolveJsonModule": true
+    "moduleResolution": "node16",
+    "resolveJsonModule": true,
+    "strict": false,
+    "types": ["vite/client"],
   }
 }
