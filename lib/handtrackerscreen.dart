@@ -74,10 +74,13 @@ class _HandTrackerScreenState extends State<HandTrackerScreen> {
       final bytes = await image.readAsBytes();
 
       final response = await http.post(
-        Uri.parse('http://127.0.0.1:5000/process_frame'),
-        headers: {'Content-Type': 'image/jpeg'},
-        body: bytes,
-      );
+  Uri.parse('http://127.0.0.1:5000/process_frame'),  // or 'http://10.2.41.250:5000/process_frame'
+  headers: {
+    'Content-Type': 'image/jpeg',
+    'Accept': 'application/json',  // optional but good
+  },
+  body: bytes,
+);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);

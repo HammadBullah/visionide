@@ -1,5 +1,6 @@
 # backend/main.py
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import cv2
 import numpy as np
 import logging
@@ -14,6 +15,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+CORS(app)
 
 # ──────────────────────────────────────────────
 # Load HandLandmarker model (once, at startup)
@@ -108,7 +110,6 @@ def process():
         logger.error(f"Server error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
-
 if __name__ == '__main__':
     logger.info("Starting hand-tracking server on http://127.0.0.1:5000")
-    app.run(host='127.0.0.1', port=5000, debug=False, threaded=True)
+    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)  # ← change host to '0.0.0.0'
