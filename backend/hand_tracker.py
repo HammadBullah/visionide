@@ -13,7 +13,7 @@ HandLandmarkerOptions = vision.HandLandmarkerOptions
 VisionRunningMode = vision.RunningMode
 
 options = HandLandmarkerOptions(
-    base_options=BaseOptions(model_asset_path='hand_landmarker.task'),
+    base_options=BaseOptions(model_asset_path='/Users/hammadsafi/Library/Mobile Documents/com~apple~CloudDocs/VisionIDE/visionide/backend/hand_landmarker.task'),
     running_mode=VisionRunningMode.VIDEO,
     num_hands=2,
     min_hand_detection_confidence=0.5,

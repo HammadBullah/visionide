@@ -30,7 +30,7 @@ HandLandmarkerOptions = vision.HandLandmarkerOptions
 VisionRunningMode = vision.RunningMode
 
 options = HandLandmarkerOptions(
-    base_options=BaseOptions(model_asset_path='hand_landmarker.task'),
+    base_options=BaseOptions(model_asset_path='/Users/hammadsafi/Library/Mobile Documents/com~apple~CloudDocs/VisionIDE/visionide/backend/hand_landmarker.task'),
     running_mode=VisionRunningMode.VIDEO,
     num_hands=2,
     min_hand_detection_confidence=0.5,
@@ -111,5 +111,5 @@ def process():
         return jsonify({"success": False, "error": str(e)}), 500
 
 if __name__ == '__main__':
-    logger.info("Starting hand-tracking server on http://127.0.0.1:5000")
-    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)  # ← change host to '0.0.0.0'
+    logger.info("Starting hand-tracking server on http://127.0.0.1:8000")
+    app.run(host='0.0.0.0', port=8000, debug=False, threaded=True)  # ← change host to '0.0.0.0'
