@@ -14,7 +14,7 @@ VisionRunningMode = vision.RunningMode
 
 options = HandLandmarkerOptions(
     base_options=BaseOptions(model_asset_path='/Users/hammadsafi/Library/Mobile Documents/com~apple~CloudDocs/VisionIDE/visionide/backend/hand_landmarker.task'),
-    running_mode=VisionRunningMode.VIDEO,
+    running_mode=VisionRunningMode.LIVE_STREAM,
     num_hands=2,
     min_hand_detection_confidence=0.5,
     min_tracking_confidence=0.5

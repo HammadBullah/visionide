@@ -1,20 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:visionide/handtrackerscreen.dart';
-
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'VisionIDE',
-      theme: ThemeData.dark(),
-      home: const HandTrackerScreen(),  // your screen with camera + red dot
-      debugShowCheckedModeBanner: false,
-    );
-  }
+import 'package:camera/camera.dart';
+import 'screens/editor_screen.dart';
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final cameras = await availableCameras();
+  runApp(MaterialApp(
+    home: EditorScreen(cameras: cameras),
+    debugShowCheckedModeBanner: false,
+  ));
 }

@@ -7,10 +7,8 @@ import logging
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
+import threading
 
-# ──────────────────────────────────────────────
-# Setup logging
-# ──────────────────────────────────────────────
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -18,20 +16,18 @@ app = Flask(__name__)
 CORS(app)
 
 # ──────────────────────────────────────────────
-# Load HandLandmarker model (once, at startup)
-# Download hand_landmarker.task from:
-# https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker#models
-# Place it in the same folder as this script
+# Load HandLandmarker model
 # ──────────────────────────────────────────────
-
 BaseOptions = python.BaseOptions
 HandLandmarker = vision.HandLandmarker
 HandLandmarkerOptions = vision.HandLandmarkerOptions
 VisionRunningMode = vision.RunningMode
 
 options = HandLandmarkerOptions(
-    base_options=BaseOptions(model_asset_path='/Users/hammadsafi/Library/Mobile Documents/com~apple~CloudDocs/VisionIDE/visionide/backend/hand_landmarker.task'),
-    running_mode=VisionRunningMode.VIDEO,
+    base_options=BaseOptions(
+        model_asset_path='/Users/hammadsafi/Library/Mobile Documents/com~apple~CloudDocs/VisionIDE/visionide/backend/hand_landmarker.task'
+    ),
+    running_mode=VisionRunningMode.VIDEO,  # ← use VIDEO mode
     num_hands=2,
     min_hand_detection_confidence=0.5,
     min_tracking_confidence=0.5
@@ -45,51 +41,57 @@ except Exception as e:
     raise RuntimeError("Model loading failed - check file path and MediaPipe installation")
 
 # ──────────────────────────────────────────────
-# Process frame function
+# Store last normalized finger position
 # ──────────────────────────────────────────────
+last_index_finger = {"x": 0.5, "y": 0.5}
 
-def process_frame(frame):
-    try:
+def camera_loop():
+    global last_index_finger
+
+    cap = cv2.VideoCapture(0)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1400)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    if not cap.isOpened():
+        print("Cannot open camera")
+        return
+
+    timestamp = 0
+    print("Camera loop started")
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            continue
+        frame = cv2.flip(frame, 1)  # ← ADD THIS
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb)
-        timestamp_ms = int(cv2.getTickCount() / cv2.getTickFrequency() * 1000)
+        mp_image = mp.Image(
+            image_format=mp.ImageFormat.SRGB,
+            data=frame_rgb
+        )
 
-        detection_result = landmarker.detect_for_video(mp_image, timestamp_ms)
+        timestamp += 1
+        result = landmarker.detect_for_video(mp_image, timestamp)
 
-        if detection_result.hand_landmarks:
-            # Take the first (most prominent) hand
-            hand_landmarks_list = detection_result.hand_landmarks[0]
+        if result.hand_landmarks:
+            hand_landmarks = result.hand_landmarks[0]
+            index_tip = hand_landmarks[8]
 
-            # Index finger tip = landmark 8
-            index_tip = hand_landmarks_list[8]
-            x = float(index_tip.x * frame.shape[1])
-            y = float(index_tip.y * frame.shape[0])
+            last_index_finger["x"] = float(index_tip.x)
+            last_index_finger["y"] = float(index_tip.y)
 
-            return {
-                "success": True,
-                "index_finger": {
-                    "x": x,
-                    "y": y
-                }
-            }
-
-        return {"success": False, "message": "No hand detected"}
-
-    except Exception as e:
-        logger.error(f"Frame processing error: {e}")
-        return {"success": False, "error": str(e)}
-
+            print("Updated:", last_index_finger)
 # ──────────────────────────────────────────────
 # Routes
 # ──────────────────────────────────────────────
-
 @app.route('/', methods=['GET'])
 def home():
     return jsonify({
         "status": "running",
-        "endpoints": ["/process_frame (POST) - send JPEG frame for hand tracking"]
+        "endpoints": [
+            "/process_frame (POST) - send JPEG frame for hand tracking",
+            "/finger (GET) - get last normalized index finger"
+        ]
     })
-
 
 @app.route('/process_frame', methods=['POST'])
 def process():
@@ -110,6 +112,12 @@ def process():
         logger.error(f"Server error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
+@app.route('/finger', methods=['GET'])
+def finger():
+    return jsonify(last_index_finger)  # normalized x/y (0..1) for Flutter
+
+threading.Thread(target=camera_loop, daemon=True).start()
+# ──────────────────────────────────────────────
 if __name__ == '__main__':
     logger.info("Starting hand-tracking server on http://127.0.0.1:8000")
-    app.run(host='0.0.0.0', port=8000, debug=False, threaded=True)  # ← change host to '0.0.0.0'
+    app.run(host='0.0.0.0', port=8000, debug=False, threaded=True)
