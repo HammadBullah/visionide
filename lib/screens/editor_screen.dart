@@ -33,13 +33,15 @@ class _EditorScreenState extends State<EditorScreen> {
   late double screenHeight;
   double fingerX = 0;
   double fingerY = 0;
+  bool isSelecting = false;
+int selectionStartOffset = 0;
 
-  Timer? _timer;
+  Timer? poll_timer;
 
   @override
 void initState() {
   super.initState();
-
+  
   // Initialize camera
   _cameraController = CameraController(
     widget.cameras[0],
@@ -59,10 +61,9 @@ void initState() {
   );
 
   // Start polling server for finger coordinates every 50ms
-  _timer = Timer.periodic(const Duration(milliseconds: 50), (_) {
-    fetchFingerCoordinates();
-  });
-}
+poll_timer = Timer.periodic(const Duration(milliseconds: 150), (_) {
+    _fetchFingerAndGesture();
+  });}
 
 @override
 void didChangeDependencies() {
@@ -70,12 +71,118 @@ void didChangeDependencies() {
   screenWidth = MediaQuery.of(context).size.width;
   screenHeight = MediaQuery.of(context).size.height;
 }
+Future<void> _fetchFingerAndGesture() async {
+  try {
+    final response = await http.get(Uri.parse('http://127.0.0.1:8000/finger'));
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final x = data['x'] as double;
+      final y = data['y'] as double;
+      final gesture = data['gesture'] as String;
+
+      final scaleX = MediaQuery.of(context).size.width;
+      final scaleY = MediaQuery.of(context).size.height;
+      setState(() {
+        fingerX = x * scaleX;
+        fingerY = y * scaleY;
+        currentGesture = gesture;
+      });
+      _handlePinchSelection(gesture);
+      _moveCursorToFinger(x, y);
+      _handleGesture(gesture);
+    }
+  } catch (e) {
+    print('Poll error: $e');
+  }
+}
+
+void _handlePinchSelection(String gesture) {
+  final controller = _codeController;
+
+  if (gesture == "pinch") {
+    if (!isSelecting) {
+      // Pinch just started → begin selection from current cursor
+      isSelecting = true;
+      selectionStartOffset = controller.selection.baseOffset;
+      print("Pinch started → selection begin at offset $selectionStartOffset");
+    }
+
+    // While pinching, extend selection to current cursor position
+    // (cursor is already moved by _moveCursorToFinger in your existing code)
+    final currentOffset = controller.selection.baseOffset;
+    controller.selection = TextSelection(
+      baseOffset: selectionStartOffset,
+      extentOffset: currentOffset,
+    );
+  } 
+  else {
+    // Pinch released → stop selecting (keep current selection)
+    if (isSelecting) {
+      isSelecting = false;
+      print("Pinch released → selection ended at offset ${controller.selection.extentOffset}");
+    }
+  }
+}
+
+void _moveCursorToFinger(double normX, double normY) {
+  if (_codeController.text.isEmpty) return;
+
+  // Estimate total lines in the editor
+  final lines = _codeController.text.split('\n');
+  final totalLines = lines.length;
+
+  // Map Y (vertical) → line number
+  int targetLine = (normY * totalLines).floor();
+  targetLine = targetLine.clamp(0, totalLines - 1);
+
+  // Map X (horizontal) → approximate char offset in that line
+  final lineText = lines[targetLine];
+  final charsInLine = lineText.length;
+  int targetChar = (normX * charsInLine * 1.2).floor(); // 1.2 = generous scaling
+  targetChar = targetChar.clamp(0, charsInLine);
+
+  // Move cursor
+  final offset = _codeController.text
+      .split('\n')
+      .take(targetLine)
+      .fold(0, (sum, line) => sum + line.length + 1) + targetChar;
+
+  setState(() {
+    _codeController.selection = TextSelection.collapsed(offset: offset);
+  });
+
+  print('Cursor moved to line $targetLine, char $targetChar (offset: $offset)');
+}
+
+String currentGesture = "none";
+
+void _handleGesture(String gesture) {
+  if (gesture == "fist") {
+    // Delete selected text
+    print("Fist → delete");
+    final sel = _codeController.selection;
+    if (!sel.isCollapsed) {  // ← corrected line
+      _codeController.text = _codeController.text.replaceRange(
+        sel.start,
+        sel.end,
+        '',
+      );
+      _codeController.selection = TextSelection.collapsed(offset: sel.start);
+    }
+  } 
+  else if (gesture == "open_palm") {
+    // Deselect / normal mode
+    _codeController.selection = TextSelection.collapsed(
+      offset: _codeController.text.length,
+    );
+  }
+}
 
   @override
   void dispose() {
     _cameraController.dispose();
     _codeController.dispose();
-    _timer?.cancel();
+    poll_timer?.cancel();
     super.dispose();
   }
 
