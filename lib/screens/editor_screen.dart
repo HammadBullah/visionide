@@ -141,7 +141,7 @@ final verticalOffset = (screenSize.height - fittedHeight) / 2;
           Positioned(
             left: fingerX - 10, // offset to center the dot
             top: fingerY - 10,
-            child: const Icon(Icons.circle, color: Colors.red, size: 20),
+            child: const Icon(Icons.circle, color: Color.fromARGB(255, 57, 57, 57), size: 20),
           ),
 
           // 4️⃣ Transparent code editor overlay
